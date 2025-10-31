@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: telegram-property-bot
+    env: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main_webhook.py
+    envVars:
+      - key: BOT_TOKEN
+        value: your_bot_token_here
+      - key: ADMIN_IDS
+        value: "63270167"
+      - key: DATABASE_URL
+        value: sqlite:///data/property_bot.db
+    healthCheckPath: /health
