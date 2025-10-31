@@ -35,14 +35,10 @@ class FilterStates(StatesGroup):
     exclude_keywords = State()
     confirmation = State()
 
-class AdminStates(StatesGroup):
-    broadcast = State()
-    stats = State()
-
-# Basic Commands
+# دستورات پایه
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    """Handle /start command"""
+    """مدیریت دستور /start"""
     user = UserOperations.get_or_create_user(
         message.from_user.id,
         message.from_user.username,
@@ -53,13 +49,13 @@ async def cmd_start(message: Message):
     welcome_text = """
 🏠 به ربات استخراج آگهی‌های ملک خوش آمدید!
 
-این ربات هر ۱۵ دقیقه آگهی‌های جدید فروش ملک از دیوار و شیپور را بررسی کرده و بر اساس فیلترهای شخصی شما ارسال می‌کند.
+🤖 این ربات هر ۱۵ دقیقه آگهی‌های جدید فروش ملک از دیوار و شیپور را بررسی کرده و بر اساس فیلترهای شخصی شما ارسال می‌کند.
 
 📋 دستورات موجود:
 /filter - تنظیم فیلترهای جستجو
-/update_filter - به‌روزرسانی فیلترها
+/update_filter - به‌روزرسانی فیلترها  
 /reset_filter - حذف فیلترها
-/status - مشاهده وضعیت فعلی
+/status - مشاهده وضعیت فعال
 /help - راهنمای استفاده
 
 برای شروع، فیلترهای جستجوی خود را با دستور /filter تنظیم کنید.
@@ -69,7 +65,7 @@ async def cmd_start(message: Message):
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
-    """Handle /help command"""
+    """مدیریت دستور /help"""
     help_text = """
 📖 راهنمای استفاده از ربات:
 
@@ -84,16 +80,16 @@ async def cmd_help(message: Message):
 - از دستور /reset_filter برای حذف تمام فیلترها استفاده کنید
 
 📊 **مشاهده وضعیت**:
-- از دستور /status برای مشاهده فیلترهای فعلی استفاده کنید
+- از دستور /status برای مشاهده فیلترهای فعال استفاده کنید
 
 ⏰ **زمان بررسی آگهی‌ها**:
 - ربات هر ۱۵ دقیقه یکبار آگهی‌های جدید را بررسی می‌کند
-- فقط آگهی‌های جدید برای شما ارسال می‌شوند
+- فقط آگهی‌های جدید برای شما ارسال می‌شود
 
 ⚠️ **نکات مهم**:
 - این ربات فقط آگهی‌های فروش را بررسی می‌کند
-- اطلاعات از سایت‌های دیوار و شیپور استخراج می‌شوند
-- ربات فقط لینک آگهی‌ها را ارسال می‌کند و عکس‌ها نمایش داده نمی‌شوند
+- اطلاعات از سایت‌های دیوار و شیپور استخراج می‌شود
+- ربات فقط لینک آگهی‌ها را ارسال می‌کند و عکس‌ها نمایش داده نمی‌شود
 
 📞 **پشتیبانی**:
 در صورت بروز مشکل با ادمین ربات تماس بگیرید.
@@ -102,7 +98,7 @@ async def cmd_help(message: Message):
 
 @router.message(Command("status"))
 async def cmd_status(message: Message):
-    """Handle /status command"""
+    """مدیریت دستور /status"""
     user_filter = UserOperations.get_user_filter(message.from_user.id)
     
     if not user_filter:
@@ -113,11 +109,11 @@ async def cmd_status(message: Message):
         )
         return
     
-    # Format status message
+    # فرمت‌بندی پیام وضعیت
     status_text = f"""
 📊 وضعیت فیلترهای شما:
 
-🏙️ شهر: {user_filter.city or 'ساری (پیش‌فرض)'}
+🏙️ شهر: {user_filter.city or 'همه'}
 🏠 نوع ملک: {user_filter.property_type or 'همه'}
 💰 بازه قیمت: {user_filter.min_price or '۰'} - {user_filter.max_price or 'نامحدود'} تومان
 📏 متراژ: {user_filter.min_area or '۰'} - {user_filter.max_area or 'نامحدود'} متر
@@ -130,19 +126,19 @@ async def cmd_status(message: Message):
 """
     await message.answer(status_text)
 
-# Filter Management Commands
+# مدیریت فیلترها
 @router.message(Command("filter"))
 async def cmd_filter(message: Message, state: FSMContext):
-    """Handle /filter command"""
+    """مدیریت دستور /filter"""
     await state.set_state(FilterStates.city)
     await message.answer(
-        "🌆 لطفا شهر مورد نظر خود را انتخاب کنید:",
+        "🏙️ لطفا شهر مورد نظر خود را انتخاب کنید:",
         reply_markup=get_city_keyboard()
     )
 
 @router.message(Command("update_filter"))
 async def cmd_update_filter(message: Message, state: FSMContext):
-    """Handle /update_filter command"""
+    """مدیریت دستور /update_filter"""
     user_filter = UserOperations.get_user_filter(message.from_user.id)
     if not user_filter:
         await message.answer(
@@ -152,7 +148,7 @@ async def cmd_update_filter(message: Message, state: FSMContext):
         )
         return
     
-    # Load existing filter data into state
+    # بارگذاری داده‌های فیلتر موجود در state
     await state.set_state(FilterStates.city)
     await state.update_data(**{
         'city': user_filter.city,
@@ -168,13 +164,13 @@ async def cmd_update_filter(message: Message, state: FSMContext):
     })
     
     await message.answer(
-        "🔧 در حال به‌روزرسانی فیلترها. لطفا شهر مورد نظر را انتخاب کنید:",
+        "🔄 در حال به‌روزرسانی فیلترها. لطفا شهر مورد نظر را انتخاب کنید:",
         reply_markup=get_city_keyboard()
     )
 
 @router.message(Command("reset_filter"))
 async def cmd_reset_filter(message: Message):
-    """Handle /reset_filter command"""
+    """مدیریت دستور /reset_filter"""
     if UserOperations.reset_user_filter(message.from_user.id):
         await message.answer(
             "✅ فیلترهای شما با موفقیت حذف شدند.\n\n"
@@ -188,10 +184,10 @@ async def cmd_reset_filter(message: Message):
             reply_markup=get_main_keyboard()
         )
 
-# Filter Setup States
+# مراحل تنظیم فیلتر
 @router.callback_query(FilterStates.city, F.data.startswith("city_"))
 async def process_city(callback: CallbackQuery, state: FSMContext):
-    """Process city selection"""
+    """پردازش انتخاب شهر"""
     city = callback.data.split("_")[1]
     await state.update_data(city=city)
     await state.set_state(FilterStates.property_type)
@@ -204,7 +200,7 @@ async def process_city(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(FilterStates.property_type, F.data.startswith("type_"))
 async def process_property_type(callback: CallbackQuery, state: FSMContext):
-    """Process property type selection"""
+    """پردازش انتخاب نوع ملک"""
     property_type = callback.data.split("_")[1]
     if property_type == 'any':
         property_type = None
@@ -222,7 +218,7 @@ async def process_property_type(callback: CallbackQuery, state: FSMContext):
 
 @router.message(FilterStates.min_price)
 async def process_min_price(message: Message, state: FSMContext):
-    """Process minimum price input"""
+    """پردازش حداقل قیمت"""
     try:
         if message.text == '0' or message.text.lower() == 'ندارد':
             min_price = None
@@ -247,7 +243,7 @@ async def process_min_price(message: Message, state: FSMContext):
 
 @router.message(FilterStates.max_price)
 async def process_max_price(message: Message, state: FSMContext):
-    """Process maximum price input"""
+    """پردازش حداکثر قیمت"""
     try:
         if message.text == '0' or message.text.lower() == 'ندارد':
             max_price = None
@@ -272,7 +268,7 @@ async def process_max_price(message: Message, state: FSMContext):
 
 @router.message(FilterStates.min_area)
 async def process_min_area(message: Message, state: FSMContext):
-    """Process minimum area input"""
+    """پردازش حداقل متراژ"""
     try:
         if message.text == '0' or message.text.lower() == 'ندارد':
             min_area = None
@@ -297,7 +293,7 @@ async def process_min_area(message: Message, state: FSMContext):
 
 @router.message(FilterStates.max_area)
 async def process_max_area(message: Message, state: FSMContext):
-    """Process maximum area input"""
+    """پردازش حداکثر متراژ"""
     try:
         if message.text == '0' or message.text.lower() == 'ندارد':
             max_area = None
@@ -320,7 +316,7 @@ async def process_max_area(message: Message, state: FSMContext):
 
 @router.callback_query(FilterStates.bedrooms, F.data.startswith("bed_"))
 async def process_bedrooms(callback: CallbackQuery, state: FSMContext):
-    """Process bedrooms selection"""
+    """پردازش انتخاب تعداد خواب"""
     bedrooms_data = callback.data.split("_")[1]
     bedrooms = int(bedrooms_data) if bedrooms_data != 'any' else None
     await state.update_data(bedrooms=bedrooms)
@@ -334,7 +330,7 @@ async def process_bedrooms(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(FilterStates.advertiser_type, F.data.startswith("adv_"))
 async def process_advertiser_type(callback: CallbackQuery, state: FSMContext):
-    """Process advertiser type selection"""
+    """پردازش انتخاب نوع آگهی‌دهنده"""
     advertiser_type = callback.data.split("_")[1]
     if advertiser_type == 'any':
         advertiser_type = None
@@ -352,7 +348,7 @@ async def process_advertiser_type(callback: CallbackQuery, state: FSMContext):
 
 @router.message(FilterStates.include_keywords)
 async def process_include_keywords(message: Message, state: FSMContext):
-    """Process include keywords"""
+    """پردازش کلمات کلیدی شامل"""
     include_keywords = None if message.text == 'ندارد' else message.text
     await state.update_data(include_keywords=include_keywords)
     await state.set_state(FilterStates.exclude_keywords)
@@ -366,14 +362,14 @@ async def process_include_keywords(message: Message, state: FSMContext):
 
 @router.message(FilterStates.exclude_keywords)
 async def process_exclude_keywords(message: Message, state: FSMContext):
-    """Process exclude keywords"""
+    """پردازش کلمات کلیدی حذف"""
     exclude_keywords = None if message.text == 'ندارد' else message.text
     
-    # Get all filter data
+    # دریافت تمام داده‌های فیلتر
     filter_data = await state.get_data()
     filter_data['exclude_keywords'] = exclude_keywords
     
-    # Show confirmation
+    # نمایش تاییدیه
     confirmation_text = await _format_filter_confirmation(filter_data)
     
     await state.set_state(FilterStates.confirmation)
@@ -384,10 +380,10 @@ async def process_exclude_keywords(message: Message, state: FSMContext):
 
 @router.callback_query(FilterStates.confirmation, F.data == "confirm_filter")
 async def confirm_filter(callback: CallbackQuery, state: FSMContext):
-    """Confirm and save filter"""
+    """تایید و ذخیره فیلتر"""
     filter_data = await state.get_data()
     
-    # Save filter to database
+    # ذخیره فیلتر در دیتابیس
     user_filter = UserOperations.update_user_filter(callback.from_user.id, filter_data)
     
     if user_filter:
@@ -395,7 +391,7 @@ async def confirm_filter(callback: CallbackQuery, state: FSMContext):
             "✅ فیلترهای شما با موفقیت ذخیره شدند!\n\n"
             "ربات هر ۱۵ دقیقه یکبار آگهی‌های جدید را بررسی کرده و در صورت وجود آگهی‌های مطابق با فیلترهای شما، "
             "آن‌ها را برای شما ارسال خواهد کرد.\n\n"
-            "از دستور /status برای مشاهده وضعیت فعلی استفاده کنید."
+            "از دستور /status برای مشاهده وضعیت فعال استفاده کنید."
         )
     else:
         await callback.message.edit_text(
@@ -407,7 +403,7 @@ async def confirm_filter(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(FilterStates.confirmation, F.data == "cancel_filter")
 async def cancel_filter(callback: CallbackQuery, state: FSMContext):
-    """Cancel filter setup"""
+    """لغو تنظیم فیلتر"""
     await callback.message.edit_text(
         "❌ تنظیم فیلترها لغو شد.\n\n"
         "برای تنظیم فیلتر جدید از دستور /filter استفاده کنید."
@@ -415,35 +411,35 @@ async def cancel_filter(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
 
-# Text Message Handlers
+# هندلرهای دکمه‌های متنی
 @router.message(F.text == "🎯 تنظیم فیلتر")
 async def handle_set_filter(message: Message, state: FSMContext):
-    """Handle set filter button"""
+    """مدیریت دکمه تنظیم فیلتر"""
     await cmd_filter(message, state)
 
-@router.message(F.text == "📊 وضعیت فعلی")
+@router.message(F.text == "📊 وضعیت فعال")
 async def handle_status(message: Message):
-    """Handle status button"""
+    """مدیریت دکمه وضعیت"""
     await cmd_status(message)
 
-@router.message(F.text == "🆘 راهنما")
+@router.message(F.text == "ℹ️ راهنما")
 async def handle_help(message: Message):
-    """Handle help button"""
+    """مدیریت دکمه راهنما"""
     await cmd_help(message)
 
 @router.message(F.text == "🔄 به‌روزرسانی فیلتر")
 async def handle_update_filter(message: Message, state: FSMContext):
-    """Handle update filter button"""
+    """مدیریت دکمه به‌روزرسانی فیلتر"""
     await cmd_update_filter(message, state)
 
 @router.message(F.text == "🗑️ حذف فیلتر")
 async def handle_reset_filter(message: Message):
-    """Handle reset filter button"""
+    """مدیریت دکمه حذف فیلتر"""
     await cmd_reset_filter(message)
 
 @router.message(F.text == "🔙 بازگشت")
 async def handle_back(message: Message):
-    """Handle back button"""
+    """مدیریت دکمه بازگشت"""
     await message.answer(
         "منوی اصلی:",
         reply_markup=get_main_keyboard()
@@ -451,16 +447,16 @@ async def handle_back(message: Message):
 
 @router.message(F.text == "❌ لغو عملیات")
 async def handle_cancel(message: Message, state: FSMContext):
-    """Handle cancel button"""
+    """مدیریت دکمه لغو"""
     await state.clear()
     await message.answer(
         "عملیات لغو شد.",
         reply_markup=get_main_keyboard()
     )
 
-# Helper Functions
+# توابع کمکی
 async def _format_filter_confirmation(filter_data):
-    """Format filter data for confirmation message"""
+    """فرمت‌بندی داده‌های فیلتر برای پیام تایید"""
     
     def format_value(value):
         if value is None:
@@ -469,7 +465,7 @@ async def _format_filter_confirmation(filter_data):
     
     city_map = {
         'sari': 'ساری',
-        'tehran': 'تهران',
+        'tehran': 'تهران', 
         'mashhad': 'مشهد',
         'esfahan': 'اصفهان',
         'shiraz': 'شیراز',
@@ -478,7 +474,7 @@ async def _format_filter_confirmation(filter_data):
     
     type_map = {
         'apartment': 'آپارتمان',
-        'house': 'خانه و ویلا',
+        'house': 'خانه و ویلا', 
         'commercial': 'تجاری',
         'land': 'زمین',
         'garden': 'باغ',
@@ -512,5 +508,5 @@ async def _format_filter_confirmation(filter_data):
     return confirmation_text
 
 def register_handlers(dp):
-    """Register all handlers with dispatcher"""
+    """ثبت تمام هندلرها"""
     dp.include_router(router)
