@@ -5,7 +5,6 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 
-# کیبوردهای اصلی (Reply Keyboard)
 def get_main_keyboard():
     """کیبورد اصلی منو"""
     keyboard = ReplyKeyboardMarkup(
@@ -18,20 +17,8 @@ def get_main_keyboard():
     )
     return keyboard
 
-def get_cancel_keyboard():
-    """کیبورد لغو عملیات"""
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="❌ لغو عملیات")]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-    return keyboard
-
-# کیبوردهای اینلاین (Inline Keyboard)
 def get_city_keyboard():
-    """کیبورد انتخاب شهر با شهرهای جدید"""
+    """کیبورد انتخاب شهر با تمام شهرهای جدید"""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             # شهرهای مازندران - ردیف اول
