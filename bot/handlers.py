@@ -64,6 +64,9 @@ async def cmd_help(message: Message):
 - تمام آگهی‌های فروش ملک نمایش داده می‌شود
 - نیازی به تنظیم فیلترهای دیگر نیست
 - آگهی‌ها به صورت خودکار به روز می‌شوند
+
+🏙️ **شهرهای موجود**:
+ساری، قائمشهر، بابل، بهشهر، نکا، جویبار، تهران، مشهد، اصفهان، شیراز، تبریز
 """
     await message.answer(help_text)
 
@@ -80,12 +83,13 @@ async def cmd_status(message: Message):
         )
         return
     
+    city_name = _get_city_name(user_filter.city)
     status_text = f"""
 📊 وضعیت فعلی:
 
-🏙️ شهر انتخاب شده: {user_filter.city}
+🏙️ شهر انتخاب شده: {city_name}
 
-🤖 ربات تمام آگهی‌های فروش ملک در {user_filter.city} را نمایش می‌دهد.
+🤖 ربات تمام آگهی‌های فروش ملک در {city_name} را نمایش می‌دهد.
 """
     await message.answer(status_text)
 
@@ -95,18 +99,21 @@ async def cmd_filter(message: Message, state: FSMContext):
     await state.set_state(FilterStates.city)
     await message.answer(
         "🏙️ لطفا شهر مورد نظر خود را انتخاب کنید:\n\n"
-        "تمام آگهی‌های فروش ملک از شهر انتخاب شده نمایش داده خواهد شد.",
+        "تمام آگهی‌های فروش ملک از شهر انتخاب شده نمایش داده خواهد شد.\n\n"
+        "🏙️ شهرهای موجود:\n"
+        "ساری، قائمشهر، بابل، بهشهر، نکا، جویبار، تهران، مشهد، اصفهان، شیراز، تبریز",
         reply_markup=get_city_keyboard()
     )
 
 @router.callback_query(FilterStates.city, F.data.startswith("city_"))
 async def process_city(callback: CallbackQuery, state: FSMContext):
     """پردازش انتخاب شهر"""
-    city = callback.data.split("_")[1]
+    city_code = callback.data.split("_")[1]
+    city_name = _get_city_name(city_code)
     
     # ذخیره فقط شهر در دیتابیس (بقیه فیلترها None می‌شوند)
     filter_data = {
-        'city': city,
+        'city': city_code,
         'property_type': None,  # همه انواع ملک
         'min_price': None,      # بدون محدودیت قیمت
         'max_price': None,      # بدون محدودیت قیمت
@@ -122,7 +129,6 @@ async def process_city(callback: CallbackQuery, state: FSMContext):
     user_filter = UserOperations.update_user_filter(callback.from_user.id, filter_data)
     
     if user_filter:
-        city_name = _get_city_name(city)
         await callback.message.edit_text(
             f"✅ شهر {city_name} انتخاب شد!\n\n"
             f"🤖 از این پس تمام آگهی‌های فروش ملک در {city_name} برای شما نمایش داده می‌شود.\n\n"
@@ -164,11 +170,11 @@ def _get_city_name(city_code):
     """تبدیل کد شهر به نام فارسی"""
     city_map = {
         'sari': 'ساری',
-        'qaemshahr': 'قائمشahr',
-        'joybar': 'جویبار',
-        'behshahr': 'بهشهر', 
-        'neka': 'نکا',
+        'qaemshahr': 'قائمشهر',
         'babol': 'بابل',
+        'behshahr': 'بهشهر',
+        'neka': 'نکا',
+        'joybar': 'جویبار',
         'tehran': 'تهران',
         'mashhad': 'مشهد',
         'esfahan': 'اصفهان',
