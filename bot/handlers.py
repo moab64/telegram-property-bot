@@ -1,16 +1,14 @@
 import logging
-import re
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from database.operations import UserOperations, AdOperations
+from database.operations import UserOperations
 from bot.keyboards import (
     get_main_keyboard,
-    get_city_keyboard,
-    get_cancel_keyboard
+    get_city_keyboard
 )
 
 logger = logging.getLogger(__name__)
@@ -156,15 +154,6 @@ async def handle_status(message: Message):
 async def handle_help(message: Message):
     await cmd_help(message)
 
-@router.message(F.text == "🔙 بازگشت")
-async def handle_back(message: Message):
-    await message.answer("منوی اصلی:", reply_markup=get_main_keyboard())
-
-@router.message(F.text == "❌ لغو عملیات")
-async def handle_cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer("عملیات لغو شد.", reply_markup=get_main_keyboard())
-
 # توابع کمکی
 def _get_city_name(city_code):
     """تبدیل کد شهر به نام فارسی"""
@@ -184,4 +173,5 @@ def _get_city_name(city_code):
     return city_map.get(city_code, city_code)
 
 def register_handlers(dp):
+    """ثبت تمام هندلرها"""
     dp.include_router(router)
