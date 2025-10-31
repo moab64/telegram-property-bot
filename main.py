@@ -1,104 +1,95 @@
-import asyncio
 import logging
-import sys
+import asyncio
 import os
+from aiogram import Bot, Dispatcher, Router, F
+from aiogram.filters import CommandStart, Command
+from aiogram.types import Message, CallbackQuery
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
-# Add current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# تنظیمات لاگ
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Import directly from folders (استفاده از ایمپورت مستقیم)
-from bot.handlers import register_handlers
-from database.operations import init_db
-from utils.config import load_config
-from utils.logger import setup_logging
-from scheduler.tasks import start_crawler_tasks
-from admin.panel import register_admin_handlers
+# دریافت توکن
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+if not BOT_TOKEN:
+    logger.error("❌ BOT_TOKEN not found!")
+    exit(1)
 
-from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+dp = Dispatcher()
+router = Router()
+
+class TestStates(StatesGroup):
+    city = State()
+
+# کیبورد تستی با شهرهای جدید
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+def get_test_city_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="ساری", callback_data="city_sari"),
+            InlineKeyboardButton(text="قائمشهر", callback_data="city_qaemshahr")
+        ],
+        [
+            InlineKeyboardButton(text="بابل", callback_data="city_babol"),
+            InlineKeyboardButton(text="بهشهر", callback_data="city_behshahr")
+        ],
+        [
+            InlineKeyboardButton(text="نکا", callback_data="city_neka"),
+            InlineKeyboardButton(text="جویبار", callback_data="city_joybar")
+        ]
+    ])
+    return keyboard
+
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    await message.answer(
+        "🎯 **ربات تست - شهرهای جدید**\n\n"
+        "برای دیدن شهرهای جدید روی دکمه زیر کلیک کن:",
+        reply_markup=get_test_city_keyboard()
+    )
+
+@router.callback_query(F.data.startswith("city_"))
+async def handle_city(callback: CallbackQuery):
+    city_code = callback.data.split("_")[1]
+    city_names = {
+        'sari': 'ساری',
+        'qaemshahr': 'قائمشهر',
+        'babol': 'بابل',
+        'behshahr': 'بهشهر',
+        'neka': 'نکا',
+        'joybar': 'جویبار'
+    }
+    city_name = city_names.get(city_code, city_code)
+    
+    await callback.message.edit_text(f"✅ شما شهر {city_name} را انتخاب کردید!")
+
+@router.message(Command("test"))
+async def cmd_test(message: Message):
+    await message.answer(
+        "🏙️ شهرهای جدید:\n\n"
+        "ساری، قائمشهر، بابل، بهشهر، نکا، جویبار\n\n"
+        "برای تست کیبورد از /start استفاده کن",
+        reply_markup=get_test_city_keyboard()
+    )
+
+dp.include_router(router)
 
 async def main():
-    """Main application entry point"""
-    
-    # Setup logging
-    setup_logging()
-    logger = logging.getLogger(__name__)
-    
+    logger.info("🚀 Starting Test Bot...")
     try:
-        # Load configuration
-        logger.info("Loading configuration...")
-        config = load_config()
-        
-        # Check if bot token is provided
-        if not config.bot.token or config.bot.token == "your_bot_token_here":
-            logger.error("Bot token not configured. Please set BOT_TOKEN in .env file")
-            return
-        
-        # Initialize database
-        logger.info("Initializing database...")
-        await init_db()
-        
-        # Initialize bot and dispatcher
-        logger.info("Initializing bot...")
-        bot = Bot(token=config.bot.token)
-        storage = MemoryStorage()
-        dp = Dispatcher(storage=storage)
-        
-        # Register handlers
-        logger.info("Registering handlers...")
-        register_handlers(dp)
-        register_admin_handlers(dp)
-        
-        # Initialize scheduler
-        logger.info("Initializing scheduler...")
-        scheduler = AsyncIOScheduler()
-        
-        # Start crawler tasks
-        logger.info("Starting crawler tasks...")
-        await start_crawler_tasks(scheduler, bot)
-        
-        # Start the bot
-        logger.info("Starting bot polling...")
-        
-        # Set bot commands (optional)
-        await set_bot_commands(bot)
-        
-        # Start polling
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
-        
     except Exception as e:
-        logger.error(f"Failed to start bot: {e}")
-    
-    finally:
-        # Cleanup
-        if 'bot' in locals():
-            await bot.session.close()
-
-async def set_bot_commands(bot: Bot):
-    """Set bot commands for better user experience"""
-    from aiogram.types import BotCommand, BotCommandScopeDefault
-    
-    commands = [
-        BotCommand(command="start", description="شروع کار با ربات"),
-        BotCommand(command="filter", description="تنظیم فیلترهای جستجو"),
-        BotCommand(command="update_filter", description="به‌روزرسانی فیلترها"),
-        BotCommand(command="reset_filter", description="حذف فیلترها"),
-        BotCommand(command="status", description="مشاهده وضعیت فعلی"),
-        BotCommand(command="help", description="راهنمای استفاده"),
-        BotCommand(command="admin", description="پنل مدیریت (فقط ادمین)"),
-    ]
-    
-    try:
-        await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
-        logging.info("Bot commands set successfully")
-    except Exception as e:
-        logging.error(f"Failed to set bot commands: {e}")
+        logger.error(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logging.info("Bot stopped by user")
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
+    asyncio.run(main())
